@@ -42,14 +42,15 @@
                 quickListClass:    'quick',             // class of each quick list item
                 quickListGroupTag: '',                  // tag surrounding quick list items (e.g., ul)
                 quickListTag:      'a',                 // tag type of each quick list item (e.g., a or li)
-                visibleClass:      'visible'            // class applied to visible rows
+                visibleClass:      'visible',            // class applied to visible rows
+                filterClass:      ''                    // a class to specify searchable cells
             },
             hsc = function(text) { // mimic PHP's htmlspecialchars() function
                 return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             },
             settings = $.extend({}, defaults, options); // merge the user's settings into the defaults
 
-        var doFiltering = function(table, q) { // handle the actual table filtering
+        var doFiltering = function(table, q, searchable) { // handle the actual table filtering
                 var tbody=table.find('tbody'); // cache the tbody element
                 if (q==='') { // if the filtering query is blank
                     tbody.find('tr').show().addClass(settings.visibleClass); // show all rows
@@ -62,7 +63,8 @@
                     if (settings.hideTFootOnFilter) { // hide footer if the setting was specified
                         table.find('tfoot').hide();
                     }
-                    tbody.find('td').removeClass(settings.highlightClass).filter(':filterTableFind("'+q.replace(/(['"])/g,'\\$1')+'")').addClass(settings.highlightClass).closest('tr').show().addClass(settings.visibleClass); // highlight (class=alt) only the cells that match the query and show their rows
+                    
+                    tbody.find(searchable).removeClass(settings.highlightClass).filter(':filterTableFind("'+q.replace(/(['"])/g,'\\$1')+'")').addClass(settings.highlightClass).closest('tr').show().addClass(settings.visibleClass); // highlight (class=alt) only the cells that match the query and show their rows
                 }
                 if (settings.callback) { // call the callback function
                     settings.callback(q, table);
@@ -100,17 +102,20 @@
                 if (settings.autofocus) { // add the autofocus attribute if requested
                     filter.attr('autofocus', true);
                 }
+
+                searchElement = (settings.filterClass == '')? 'td' : 'td'+'.'+settings.filterClass; // define cells to search
+
                 if ($.fn.bindWithDelay) { // does bindWithDelay() exist?
                     filter.bindWithDelay('keyup', function() { // bind doFiltering() to keyup (delayed)
-                        doFiltering(t, $(this).val());
+                        doFiltering(t, $(this).val(), searchElement);
                     }, 200);
                 } else { // just bind to onKeyUp
                     filter.bind('keyup', function() { // bind doFiltering() to keyup
-                        doFiltering(t, $(this).val());
+                        doFiltering(t, $(this).val(), searchElement);
                     });
                 } // keyup binding block
                 filter.bind('click search', function() { // bind doFiltering() to click and search events
-                    doFiltering(t, $(this).val());
+                    doFiltering(t, $(this).val(), searchElement);
                 });
                 if (created_filter) { // add the filter field to the container if it was created by the plugin
                     container.append(filter);
